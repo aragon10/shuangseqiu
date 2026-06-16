@@ -318,13 +318,13 @@
       align-items: center;
       justify-content: center;
       gap: 24px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     .red-balls {
       display: flex;
       gap: 12px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       justify-content: center;
     }
 
@@ -455,7 +455,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     .mini-ball {
@@ -536,7 +536,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     .history-balls .mini-ball {
@@ -663,11 +663,12 @@
       .controls { margin-bottom: 20px; }
       .input-group { gap: 12px; }
       .btn-primary { padding: 14px 24px; font-size: 1.05em; }
-      .ball { width: 44px; height: 44px; font-size: 0.95em; }
-      .ball.blue { width: 50px; height: 50px; font-size: 1.1em; }
-      .balls-container { gap: 12px; }
-      .red-balls { gap: 8px; }
-      .ball-divider { height: 28px; }
+      .result-card { padding: 24px 12px; }
+      .ball { width: 40px; height: 40px; font-size: 0.85em; }
+      .ball.blue { width: 46px; height: 46px; font-size: 1em; }
+      .balls-container { gap: 8px; }
+      .red-balls { gap: 6px; }
+      .ball-divider { height: 28px; margin: 0 2px; }
       .batch-item { padding: 12px 6px; }
       .mini-ball { width: 28px; height: 28px; font-size: 0.72em; }
       .history-item { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 4px; }
