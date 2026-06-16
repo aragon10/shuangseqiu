@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lottery-v1';
+const CACHE_NAME = 'lottery-v2';
 const ASSETS = [
   './',
   './双色球抽号器.html',
