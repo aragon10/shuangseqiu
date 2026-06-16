@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="双色球">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f0f1a">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f0f1a' width='100' height='100' rx='20'/><circle cx='35' cy='45' r='14' fill='%23e63946'/><circle cx='60' cy='40' r='14' fill='%23e63946'/><circle cx='50' cy='65' r='16' fill='%232196f3'/></svg>">
+  <link rel="manifest" href="manifest.json">
+  <title>双色球随机抽号器</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      /* 彩票店深色主题 */
+      --bg-deep: #0f0f1a;
+      --bg-card: #1a1a2e;
+      --bg-card-hover: #222240;
+      --bg-surface: #16162b;
+
+      /* 金色系统 — 模拟刮刮卡涂层下的金色 */
+      --gold: #d4af37;
+      --gold-light: #f0d060;
+      --gold-dim: #8b7330;
+
+      /* 球色 */
+      --red-ball: #e63946;
+      --red-glow: rgba(230, 57, 70, 0.35);
+      --blue-ball: #2196f3;
+      --blue-glow: rgba(33, 150, 243, 0.35);
+
+      /* 文字 */
+      --text-primary: #eae6d5;
+      --text-secondary: #9a9580;
+      --text-dim: #5c5848;
+
+      /* 边框 */
+      --border: rgba(212, 175, 55, 0.12);
+      --border-active: rgba(212, 175, 55, 0.35);
+    }
+
+    body {
+      font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: 24px 16px;
+      padding-top: env(safe-area-inset-top, 24px);
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+      padding-left: calc(env(safe-area-inset-left, 0px) + 16px);
+      padding-right: calc(env(safe-area-inset-right, 0px) + 16px);
+      /* 微妙的噪点纹理 */
+      background-image: radial-gradient(circle at 20% 50%, rgba(212,175,55,0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(230,57,70,0.02) 0%, transparent 40%);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: none;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ─── 头部：刮刮卡质感 ─── */
+    .header {
+      text-align: center;
+      padding: 40px 30px 36px;
+      background: linear-gradient(160deg, #1e1e38 0%, #2a1a20 100%);
+      border: 1px solid var(--border-active);
+      border-radius: 16px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(212,175,55,0.06), transparent, rgba(212,175,55,0.03), transparent);
+      animation: headerShimmer 8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes headerShimmer {
+      to { transform: rotate(360deg); }
+    }
+
+    .header h1 {
+      font-size: 2.4em;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dim) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+      z-index: 1;
+    }
+
+    .subtitle {
+      font-size: 1em;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── 标签页 ─── */
+    .tabs {
+      display: flex;
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 14px 10px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.95em;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.25s ease;
+      position: relative;
+      font-family: inherit;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      min-height: 48px;
+    }
+
+    .tab::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      width: 60%;
+      height: 2px;
+      background: var(--gold);
+      transform: scaleX(0);
+      transition: transform 0.25s ease;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+      background: rgba(212,175,55,0.04);
+    }
+
+    .tab.active {
+      color: var(--gold);
+      background: rgba(212,175,55,0.08);
+    }
+
+    .tab.active::after {
+      transform: scaleX(1);
+    }
+
+    /* ─── 标签页内容 ─── */
+    .tab-content {
+      display: none;
+      animation: fadeSlide 0.35s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── 通用卡片 ─── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    /* ─── 生成区域 ─── */
+    .generate-section {
+      background: var(--bg-card);
+      padding: 28px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .controls {
+      margin-bottom: 28px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .input-group label {
+      font-size: 1em;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    .input-group input {
+      width: 72px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-active);
+      border-radius: 10px;
+      font-size: 1.05em;
+      text-align: center;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+      min-height: 44px;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212,175,55,0.15);
+    }
+
+    /* ─── 按钮 ─── */
+    .btn {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: inherit;
+      letter-spacing: 0.02em;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      min-height: 44px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold) 0%, #b8942e 100%);
+      color: #1a1a2e;
+      box-shadow: 0 4px 16px rgba(212,175,55,0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(212,175,55,0.35);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red-ball);
+      border: 1px solid rgba(230,57,70,0.3);
+      padding: 8px 18px;
+      font-size: 0.85em;
+    }
+
+    .btn-danger:hover {
+      background: rgba(230,57,70,0.1);
+      border-color: rgba(230,57,70,0.5);
+    }
+
+    /* ─── 结果卡片 ─── */
+    .result-card {
+      background: var(--bg-surface);
+      padding: 32px 20px;
+      border-radius: 14px;
+      text-align: center;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .result-card h3 {
+      margin-bottom: 24px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.9em;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .balls-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .red-balls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ─── 3D 拟物球 ─── */
+    .ball {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      font-weight: 700;
+      color: white;
+      position: relative;
+      animation: ballBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      cursor: default;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .ball.red {
+      background: radial-gradient(circle at 35% 30%, #ff6b7a 0%, var(--red-ball) 60%, #a12530 100%);
+      box-shadow: 0 4px 12px var(--red-glow),
+                  inset 0 -3px 6px rgba(0,0,0,0.2),
+                  inset 0 2px 4px rgba(255,255,255,0.15);
+    }
+
+    .ball.blue {
+      background: radial-gradient(circle at 35% 30%, #64b5f6 0%, var(--blue-ball) 60%, #1565c0 100%);
+      box-shadow: 0 6px 18px var(--blue-glow),
+                  inset 0 -3px 6px rgba(0,0,0,0.2),
+                  inset 0 2px 4px rgba(255,255,255,0.2);
+      width: 64px;
+      height: 64px;
+      font-size: 1.35em;
+    }
+
+    .ball::after {
+      content: '';
+      position: absolute;
+      top: 12%;
+      left: 22%;
+      width: 30%;
+      height: 20%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.45) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: rotate(-25deg);
+    }
+
+    @keyframes ballBounce {
+      0% { transform: scale(0) translateY(30px); opacity: 0; }
+      60% { transform: scale(1.1) translateY(-4px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* 分隔符 */
+    .ball-divider {
+      width: 2px;
+      height: 36px;
+      background: var(--border-active);
+      border-radius: 1px;
+      margin: 0 4px;
+    }
+
+    /* ─── 批量结果 ─── */
+    .batch-result {
+      background: var(--bg-card);
+      padding: 24px;
+      border-radius: 14px;
+      margin-top: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .batch-result h3 {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.9em;
+      letter-spacing: 0.1em;
+    }
+
+    .batch-list {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .batch-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 8px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      transition: background 0.2s;
+      animation: batchSlide 0.35s ease both;
+    }
+
+    @keyframes batchSlide {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .batch-item .mini-ball {
+      animation: miniBallPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes miniBallPop {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .batch-item:hover {
+      background: rgba(212,175,55,0.03);
+    }
+
+    .batch-item:last-child {
+      border-bottom: none;
+    }
+
+    .batch-number {
+      font-weight: 700;
+      color: var(--gold-dim);
+      min-width: 36px;
+      font-size: 0.85em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .batch-balls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mini-ball {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78em;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    }
+
+    .mini-ball.red {
+      background: radial-gradient(circle at 35% 30%, #ff6b7a, var(--red-ball));
+      box-shadow: 0 2px 6px var(--red-glow);
+    }
+
+    .mini-ball.blue {
+      background: radial-gradient(circle at 35% 30%, #64b5f6, var(--blue-ball));
+      box-shadow: 0 2px 6px var(--blue-glow);
+    }
+
+    /* ─── 历史记录 ─── */
+    .history-section {
+      background: var(--bg-card);
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .history-header h3 {
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.9em;
+      letter-spacing: 0.1em;
+    }
+
+    .history-list {
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 6px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .history-item:hover {
+      background: rgba(212,175,55,0.03);
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-time {
+      color: var(--text-dim);
+      font-size: 0.82em;
+      min-width: 140px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-balls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .history-balls .mini-ball {
+      width: 28px;
+      height: 28px;
+      font-size: 0.72em;
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-dim);
+      font-size: 0.95em;
+    }
+
+    .empty-message::before {
+      content: '🎰';
+      display: block;
+      font-size: 2.4em;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* ─── 统计图表 ─── */
+    .stats-section {
+      background: var(--bg-card);
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .stats-section > h3 {
+      text-align: center;
+      margin-bottom: 24px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.9em;
+      letter-spacing: 0.1em;
+    }
+
+    .stats-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .chart-group h4 {
+      margin-bottom: 14px;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.88em;
+      letter-spacing: 0.04em;
+    }
+
+    .chart {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .chart-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bar {
+      width: 18px;
+      min-height: 3px;
+      border-radius: 2px 2px 0 0;
+      transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .bar.red {
+      background: linear-gradient(to top, var(--red-ball), #ff6b7a);
+    }
+
+    .bar.blue {
+      background: linear-gradient(to top, var(--blue-ball), #64b5f6);
+    }
+
+    .bar-label {
+      font-size: 0.62em;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar-value {
+      font-size: 0.62em;
+      font-weight: 700;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── 滚动条 ─── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-active);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--gold-dim);
+    }
+
+    /* ─── 响应式 ─── */
+    @media (max-width: 600px) {
+      body { padding: 16px 12px; }
+      .header { padding: 28px 20px 24px; }
+      .header h1 { font-size: 1.7em; }
+      .subtitle { font-size: 0.9em; }
+      .tabs { margin-bottom: 16px; }
+      .tab { padding: 12px 8px; font-size: 0.88em; min-height: 44px; }
+      .generate-section, .history-section, .stats-section, .batch-result { padding: 18px; }
+      .controls { margin-bottom: 20px; }
+      .input-group { gap: 12px; }
+      .btn-primary { padding: 14px 24px; font-size: 1.05em; }
+      .ball { width: 44px; height: 44px; font-size: 0.95em; }
+      .ball.blue { width: 50px; height: 50px; font-size: 1.1em; }
+      .balls-container { gap: 12px; }
+      .red-balls { gap: 8px; }
+      .ball-divider { height: 28px; }
+      .batch-item { padding: 12px 6px; }
+      .mini-ball { width: 28px; height: 28px; font-size: 0.72em; }
+      .history-item { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 4px; }
+      .history-time { min-width: auto; font-size: 0.78em; }
+      .history-balls .mini-ball { width: 26px; height: 26px; font-size: 0.68em; }
+      .chart { gap: 4px; }
+      .bar { width: 14px; }
+      .bar-label { font-size: 0.55em; }
+      .bar-value { font-size: 0.55em; }
+      .history-header { flex-wrap: wrap; gap: 8px; }
+    }
+
+    /* ─── 触摸反馈 ─── */
+    .btn:active,
+    .tab:active {
+      transform: scale(0.97);
+    }
+
+    .ball:active {
+      transform: scale(0.95);
+    }
+
+    /* ─── 减少动画 ─── */
+    @media (prefers-reduced-motion: reduce) {
+      .ball { animation: none; opacity: 1; }
+      .header::before { animation: none; }
+      .bar { transition: none; }
+      .tab-content { animation: none; }
+      .btn, .tab, .ball { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部标题栏 -->
+    <header class="header">
+      <h1>双色球抽号器</h1>
+      <p class="subtitle">幸运从这里开始</p>
+    </header>
+
+    <!-- 标签页导航 -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="generate">摇号</button>
+      <button class="tab" data-tab="history">历史记录</button>
+      <button class="tab" data-tab="stats">号码统计</button>
+    </nav>
+
+    <!-- 摇号页面 -->
+    <section id="generate" class="tab-content active">
+      <div class="generate-section">
+        <div class="controls">
+          <div class="input-group">
+            <label for="count">生成注数</label>
+            <input type="number" id="count" min="1" max="100" value="1">
+            <button id="generateBtn" class="btn btn-primary">摇一摇</button>
+          </div>
+        </div>
+
+        <!-- 单注结果显示 -->
+        <div id="singleResult" class="result-card">
+          <h3>摇号结果</h3>
+          <div class="balls-container">
+            <div class="red-balls" id="redBalls"></div>
+            <div class="ball-divider"></div>
+            <div class="blue-ball" id="blueBall"></div>
+          </div>
+        </div>
+
+        <!-- 批量结果显示 -->
+        <div id="batchResult" class="batch-result" style="display: none;">
+          <h3>批量结果</h3>
+          <div id="batchList" class="batch-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 历史记录页面 -->
+    <section id="history" class="tab-content">
+      <div class="history-section">
+        <div class="history-header">
+          <h3>历史记录</h3>
+          <button id="clearHistoryBtn" class="btn btn-danger">清空</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+    </section>
+
+    <!-- 号码统计页面 -->
+    <section id="stats" class="tab-content">
+      <div class="stats-section">
+        <h3>号码出现频率</h3>
+        <div class="stats-chart">
+          <div class="chart-group">
+            <h4>红球 (1-33)</h4>
+            <div id="redChart" class="chart"></div>
+          </div>
+          <div class="chart-group">
+            <h4>蓝球 (1-16)</h4>
+            <div id="blueChart" class="chart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // 双色球核心逻辑
+    const Lottery = {
+      RED_MIN: 1,
+      RED_MAX: 33,
+      RED_COUNT: 6,
+      BLUE_MIN: 1,
+      BLUE_MAX: 16,
+
+      getRandomInt(min, max) {
+        const range = max - min + 1;
+        const array = new Uint32Array(1);
+        crypto.getRandomValues(array);
+        return min + (array[0] % range);
+      },
+
+      generateSingle() {
+        const redBalls = new Set();
+        while (redBalls.size < this.RED_COUNT) {
+          redBalls.add(this.getRandomInt(this.RED_MIN, this.RED_MAX));
+        }
+        const red = Array.from(redBalls).sort((a, b) => a - b);
+        const blue = this.getRandomInt(this.BLUE_MIN, this.BLUE_MAX);
+        return { red, blue };
+      },
+
+      generateBatch(count) {
+        const results = [];
+        for (let i = 0; i < count; i++) {
+          results.push(this.generateSingle());
+        }
+        return results;
+      },
+
+      calculateStats(records) {
+        const redStats = new Map();
+        const blueStats = new Map();
+
+        for (let i = this.RED_MIN; i <= this.RED_MAX; i++) {
+          redStats.set(i, 0);
+        }
+        for (let i = this.BLUE_MIN; i <= this.BLUE_MAX; i++) {
+          blueStats.set(i, 0);
+        }
+
+        records.forEach(record => {
+          record.red.forEach(num => {
+            redStats.set(num, (redStats.get(num) || 0) + 1);
+          });
+          blueStats.set(record.blue, (blueStats.get(record.blue) || 0) + 1);
+        });
+
+        return { redStats, blueStats };
+      }
+    };
+
+    // 全局状态
+    let historyRecords = JSON.parse(localStorage.getItem('lottery-history') || '[]');
+
+    // DOM 元素
+    const elements = {
+      tabs: document.querySelectorAll('.tab'),
+      tabContents: document.querySelectorAll('.tab-content'),
+      countInput: document.getElementById('count'),
+      generateBtn: document.getElementById('generateBtn'),
+      singleResult: document.getElementById('singleResult'),
+      redBalls: document.getElementById('redBalls'),
+      blueBall: document.getElementById('blueBall'),
+      batchResult: document.getElementById('batchResult'),
+      batchList: document.getElementById('batchList'),
+      historyList: document.getElementById('historyList'),
+      clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+      redChart: document.getElementById('redChart'),
+      blueChart: document.getElementById('blueChart')
+    };
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      renderHistoryList();
+      registerServiceWorker();
+    });
+
+    // 注册 Service Worker
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      }
+    }
+
+    // 设置事件监听
+    function setupEventListeners() {
+      elements.tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+      });
+
+      elements.generateBtn.addEventListener('click', generateLottery);
+      elements.clearHistoryBtn.addEventListener('click', clearHistory);
+
+      // 移动端触摸反馈
+      document.querySelectorAll('.btn, .tab').forEach(el => {
+        el.addEventListener('touchstart', function() {
+          this.style.transform = 'scale(0.97)';
+        }, { passive: true });
+        el.addEventListener('touchend', function() {
+          this.style.transform = '';
+        }, { passive: true });
+        el.addEventListener('touchcancel', function() {
+          this.style.transform = '';
+        }, { passive: true });
+      });
+
+      // 防止输入框双击缩放
+      elements.countInput.addEventListener('dblclick', e => e.preventDefault());
+    }
+
+    // 切换标签页
+    function switchTab(tabName) {
+      elements.tabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+      });
+
+      elements.tabContents.forEach(content => {
+        content.classList.toggle('active', content.id === tabName);
+      });
+
+      if (tabName === 'stats') {
+        updateStatsChart();
+      }
+
+      if (tabName === 'history') {
+        renderHistoryList();
+      }
+    }
+
+    // 生成双色球号码
+    function generateLottery() {
+      const count = parseInt(elements.countInput.value) || 1;
+
+      if (count < 1 || count > 100) {
+        alert('请输入 1-100 之间的数字');
+        return;
+      }
+
+      const results = Lottery.generateBatch(count);
+      const timestamp = new Date().toLocaleString('zh-CN');
+
+      results.forEach(result => {
+        historyRecords.push({ timestamp, ...result });
+      });
+
+      saveHistory();
+
+      if (count === 1) {
+        showSingleResult(results[0]);
+      } else {
+        showBatchResult(results);
+      }
+    }
+
+    // 显示单注结果
+    function showSingleResult(result) {
+      elements.singleResult.style.display = 'block';
+      elements.batchResult.style.display = 'none';
+
+      elements.redBalls.innerHTML = '';
+      result.red.forEach((num, index) => {
+        const ball = document.createElement('div');
+        ball.className = 'ball red';
+        ball.textContent = String(num).padStart(2, '0');
+        ball.style.animationDelay = `${index * 0.08}s`;
+        elements.redBalls.appendChild(ball);
+      });
+
+      elements.blueBall.innerHTML = '';
+      const blueBall = document.createElement('div');
+      blueBall.className = 'ball blue';
+      blueBall.textContent = String(result.blue).padStart(2, '0');
+      blueBall.style.animationDelay = '0.5s';
+      elements.blueBall.appendChild(blueBall);
+    }
+
+    // 显示批量结果
+    function showBatchResult(results) {
+      elements.singleResult.style.display = 'none';
+      elements.batchResult.style.display = 'block';
+
+      elements.batchList.innerHTML = '';
+      results.forEach((result, index) => {
+        const item = document.createElement('div');
+        item.className = 'batch-item';
+        item.style.animationDelay = `${index * 0.06}s`;
+
+        const number = document.createElement('span');
+        number.className = 'batch-number';
+        number.textContent = `#${index + 1}`;
+
+        const balls = document.createElement('div');
+        balls.className = 'batch-balls';
+
+        let ballIndex = 0;
+        result.red.forEach(num => {
+          const ball = document.createElement('span');
+          ball.className = 'mini-ball red';
+          ball.textContent = String(num).padStart(2, '0');
+          ball.style.animationDelay = `${index * 0.06 + ballIndex * 0.04}s`;
+          balls.appendChild(ball);
+          ballIndex++;
+        });
+
+        const blue = document.createElement('span');
+        blue.className = 'mini-ball blue';
+        blue.textContent = String(result.blue).padStart(2, '0');
+        blue.style.animationDelay = `${index * 0.06 + ballIndex * 0.04}s`;
+        balls.appendChild(blue);
+
+        item.appendChild(number);
+        item.appendChild(balls);
+        elements.batchList.appendChild(item);
+      });
+    }
+
+    // 保存历史记录
+    function saveHistory() {
+      localStorage.setItem('lottery-history', JSON.stringify(historyRecords));
+    }
+
+    // 渲染历史记录列表
+    function renderHistoryList() {
+      elements.historyList.innerHTML = '';
+
+      if (historyRecords.length === 0) {
+        elements.historyList.innerHTML = '<div class="empty-message">还没有摇过号，试试手气吧</div>';
+        return;
+      }
+
+      const reversedRecords = [...historyRecords].reverse();
+
+      reversedRecords.forEach(record => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+
+        const time = document.createElement('span');
+        time.className = 'history-time';
+        time.textContent = record.timestamp;
+
+        const balls = document.createElement('div');
+        balls.className = 'history-balls';
+
+        record.red.forEach(num => {
+          const ball = document.createElement('span');
+          ball.className = 'mini-ball red';
+          ball.textContent = String(num).padStart(2, '0');
+          balls.appendChild(ball);
+        });
+
+        const blue = document.createElement('span');
+        blue.className = 'mini-ball blue';
+        blue.textContent = String(record.blue).padStart(2, '0');
+        balls.appendChild(blue);
+
+        item.appendChild(time);
+        item.appendChild(balls);
+        elements.historyList.appendChild(item);
+      });
+    }
+
+    // 清空历史记录
+    function clearHistory() {
+      if (confirm('确定要清空所有历史记录吗？')) {
+        historyRecords = [];
+        saveHistory();
+        renderHistoryList();
+        updateStatsChart();
+      }
+    }
+
+    // 更新统计图表
+    function updateStatsChart() {
+      const { redStats, blueStats } = Lottery.calculateStats(historyRecords);
+
+      const maxRedCount = Math.max(...Array.from(redStats.values()), 1);
+      const maxBlueCount = Math.max(...Array.from(blueStats.values()), 1);
+
+      elements.redChart.innerHTML = '';
+      for (let i = Lottery.RED_MIN; i <= Lottery.RED_MAX; i++) {
+        const count = redStats.get(i) || 0;
+        const height = Math.max(3, (count / maxRedCount) * 80);
+
+        const barContainer = document.createElement('div');
+        barContainer.className = 'chart-bar';
+
+        const value = document.createElement('span');
+        value.className = 'bar-value';
+        value.textContent = count;
+
+        const bar = document.createElement('div');
+        bar.className = 'bar red';
+        bar.style.height = `${height}px`;
+
+        const label = document.createElement('span');
+        label.className = 'bar-label';
+        label.textContent = String(i).padStart(2, '0');
+
+        barContainer.appendChild(value);
+        barContainer.appendChild(bar);
+        barContainer.appendChild(label);
+        elements.redChart.appendChild(barContainer);
+      }
+
+      elements.blueChart.innerHTML = '';
+      for (let i = Lottery.BLUE_MIN; i <= Lottery.BLUE_MAX; i++) {
+        const count = blueStats.get(i) || 0;
+        const height = Math.max(3, (count / maxBlueCount) * 80);
+
+        const barContainer = document.createElement('div');
+        barContainer.className = 'chart-bar';
+
+        const value = document.createElement('span');
+        value.className = 'bar-value';
+        value.textContent = count;
+
+        const bar = document.createElement('div');
+        bar.className = 'bar blue';
+        bar.style.height = `${height}px`;
+
+        const label = document.createElement('span');
+        label.className = 'bar-label';
+        label.textContent = String(i).padStart(2, '0');
+
+        barContainer.appendChild(value);
+        barContainer.appendChild(bar);
+        barContainer.appendChild(label);
+        elements.blueChart.appendChild(barContainer);
+      }
+    }
+  </script>
+</body>
+</html>
